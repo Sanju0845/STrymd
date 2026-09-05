@@ -1,0 +1,1 @@
+git add . && git commit -m "music player update with adjusting queue songs" -m "- Updated layout changes in settings.kt\n- Fixed alignment for local music queues\n- Synced files from web editor zip" && git push origin main --force

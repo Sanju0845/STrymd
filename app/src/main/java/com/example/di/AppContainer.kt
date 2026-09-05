@@ -16,8 +16,8 @@ class AppContainer(val context: Context) {
     val auraDao = database.auraDao()
 
     val mediaStoreRepository = MediaStoreRepository(context)
-    val musicRepository = MusicRepository(mediaStoreRepository, auraDao)
     val preferencesRepository = AuraPreferencesRepository(context)
+    val musicRepository = MusicRepository(mediaStoreRepository, auraDao, preferencesRepository)
 
     private val applicationScope = CoroutineScope(Dispatchers.IO)
 

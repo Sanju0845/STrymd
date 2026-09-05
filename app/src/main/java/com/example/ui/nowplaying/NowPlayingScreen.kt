@@ -9,7 +9,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -126,11 +126,12 @@ fun NowPlayingScreen(
         label = "artScale"
     )
 
-    // Interactive swipe-down gesture with elastic drag offset
+    // Interactive swipe-down and horizontal swipe gestures
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    var horizontalDragOffset by remember { mutableFloatStateOf(0f) }
     val animatedOffsetY by animateFloatAsState(
         targetValue = dragOffsetY,
-        animationSpec = spring(),
+        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f),
         label = "dragOffsetY"
     )
 
@@ -139,22 +140,40 @@ fun NowPlayingScreen(
             .fillMaxSize()
             .offset { IntOffset(0, animatedOffsetY.roundToInt()) }
             .pointerInput(Unit) {
-                detectVerticalDragGestures(
-                    onVerticalDrag = { change, dragAmount ->
-                        change.consume()
-                        if (dragAmount > 0 || dragOffsetY > 0) {
-                            dragOffsetY = (dragOffsetY + dragAmount).coerceAtLeast(0f)
-                        }
+                detectDragGestures(
+                    onDragStart = {
+                        dragOffsetY = 0f
+                        horizontalDragOffset = 0f
                     },
                     onDragEnd = {
-                        if (dragOffsetY > 180f) {
-                            onDismiss()
-                        } else {
-                            dragOffsetY = 0f
+                        if (dragOffsetY > 120f) {
+                            if (currentTab != NowPlayingTab.PLAYER) {
+                                currentTab = NowPlayingTab.PLAYER
+                                dragOffsetY = 0f
+                            } else {
+                                onDismiss()
+                            }
+                        } else if (horizontalDragOffset < -60f) {
+                            playbackManager.next()
+                        } else if (horizontalDragOffset > 60f) {
+                            playbackManager.previous()
                         }
+                        dragOffsetY = 0f
+                        horizontalDragOffset = 0f
                     },
                     onDragCancel = {
                         dragOffsetY = 0f
+                        horizontalDragOffset = 0f
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        if (kotlin.math.abs(dragAmount.y) > kotlin.math.abs(dragAmount.x) || dragOffsetY > 0) {
+                            if (dragAmount.y > 0 || dragOffsetY > 0) {
+                                dragOffsetY = (dragOffsetY + dragAmount.y).coerceAtLeast(0f)
+                            }
+                        } else {
+                            horizontalDragOffset += dragAmount.x
+                        }
                     }
                 )
             }
@@ -185,7 +204,13 @@ fun NowPlayingScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    onClick = onDismiss,
+                    onClick = {
+                        if (currentTab != NowPlayingTab.PLAYER) {
+                            currentTab = NowPlayingTab.PLAYER
+                        } else {
+                            onDismiss()
+                        }
+                    },
                     modifier = Modifier.testTag("now_playing_dismiss_button")
                 ) {
                     Icon(
@@ -485,11 +510,11 @@ fun NowPlayingScreen(
                 }
             }
 
-            // Bottom Bar (Apple Music style: Lyrics, Cast, Queue)
+            // Bottom Bar (Apple Music style: Lyrics, Queue)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 12.dp, horizontal = 16.dp),
+                    .padding(vertical = 12.dp, horizontal = 24.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -502,17 +527,6 @@ fun NowPlayingScreen(
                         imageVector = Icons.Rounded.Lyrics,
                         contentDescription = "Lyrics",
                         tint = if (currentTab == NowPlayingTab.LYRICS) Color.White else Color.White.copy(alpha = 0.5f),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-
-                IconButton(
-                    onClick = { showEqualizerDialog = true }
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Equalizer,
-                        contentDescription = "Audio Route / Equalizer",
-                        tint = Color.White.copy(alpha = 0.5f),
                         modifier = Modifier.size(24.dp)
                     )
                 }

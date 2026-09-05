@@ -172,10 +172,14 @@ class MediaStoreRepository(private val context: Context) {
 
                         val trackUri = ContentUris.withAppendedId(contentUri, id).toString()
 
-                        val albumArtUri = ContentUris.withAppendedId(
-                            Uri.parse("content://media/external/audio/albumart"),
-                            albumId
-                        ).toString()
+                        val albumArtUri = if (albumId > 0) {
+                            ContentUris.withAppendedId(
+                                Uri.parse("content://media/external/audio/albumart"),
+                                albumId
+                            ).toString()
+                        } else {
+                            null
+                        }
 
                         // Determine folder from bucket, relative path, or file path
                         val folderName = when {

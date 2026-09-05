@@ -52,6 +52,12 @@ class SettingsViewModel(
         }
     }
 
+    fun setFolderEnabled(folderName: String, enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setFolderEnabled(folderName, enabled)
+        }
+    }
+
     class Factory(private val preferencesRepository: AuraPreferencesRepository) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {

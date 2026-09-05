@@ -5,6 +5,7 @@ import com.example.data.local.entities.FavoriteEntity
 import com.example.data.local.entities.PlaylistEntity
 import com.example.data.local.entities.PlaylistSongCrossRef
 import com.example.data.mediastore.MediaStoreRepository
+import com.example.data.preferences.AuraPreferencesRepository
 import com.example.domain.model.Album
 import com.example.domain.model.Artist
 import com.example.domain.model.Genre
@@ -16,15 +17,20 @@ import kotlinx.coroutines.flow.map
 
 class MusicRepository(
     private val mediaStoreRepository: MediaStoreRepository,
-    private val auraDao: AuraDao
+    private val auraDao: AuraDao,
+    private val preferencesRepository: AuraPreferencesRepository
 ) {
 
     val allSongs: Flow<List<Song>> = combine(
         mediaStoreRepository.songsFlow,
-        auraDao.getAllFavoriteIds()
-    ) { songs, favoriteIds ->
+        auraDao.getAllFavoriteIds(),
+        preferencesRepository.preferencesFlow
+    ) { songs, favoriteIds, prefs ->
         val favSet = favoriteIds.toSet()
-        songs.map { song ->
+        val disabled = prefs.disabledFolders
+        songs.filter { song ->
+            !disabled.contains(song.folderName)
+        }.map { song ->
             song.copy(isFavorite = favSet.contains(song.id))
         }
     }

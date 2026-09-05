@@ -2,6 +2,7 @@ package com.example.ui.components
 
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -24,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.palette.graphics.Palette
@@ -31,6 +33,7 @@ import coil.compose.AsyncImage
 import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
+import com.example.R
 import com.example.ui.theme.AlbumArtShape
 import com.example.ui.theme.AuraAccentPink
 import com.example.ui.theme.AuraAccentRed
@@ -67,11 +70,11 @@ fun AlbumArtImage(
                 modifier = Modifier.fillMaxSize()
             )
         } else {
-            Icon(
-                imageVector = Icons.Rounded.MusicNote,
+            Image(
+                painter = painterResource(id = R.drawable.strymd_logo),
                 contentDescription = contentDescription,
-                tint = Color.White.copy(alpha = 0.85f),
-                modifier = Modifier.fillMaxSize(0.45f)
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize(0.7f)
             )
         }
     }

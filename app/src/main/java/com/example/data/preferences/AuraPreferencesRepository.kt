@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -22,7 +23,8 @@ data class AuraPreferences(
     val isGaplessEnabled: Boolean = true,
     val crossfadeDurationSeconds: Int = 0,
     val equalizerPreset: String = "Flat",
-    val sleepTimerMinutes: Int = 0
+    val sleepTimerMinutes: Int = 0,
+    val disabledFolders: Set<String> = emptySet()
 )
 
 class AuraPreferencesRepository(private val context: Context) {
@@ -33,6 +35,7 @@ class AuraPreferencesRepository(private val context: Context) {
         val CROSSFADE_SECONDS = intPreferencesKey("crossfade_seconds")
         val EQUALIZER_PRESET = stringPreferencesKey("equalizer_preset")
         val SLEEP_TIMER_MINUTES = intPreferencesKey("sleep_timer_minutes")
+        val DISABLED_FOLDERS = stringSetPreferencesKey("disabled_folders")
     }
 
     val preferencesFlow: Flow<AuraPreferences> = context.auraDataStore.data.map { prefs ->
@@ -48,7 +51,8 @@ class AuraPreferencesRepository(private val context: Context) {
             isGaplessEnabled = prefs[PreferencesKeys.GAPLESS_PLAYBACK] ?: true,
             crossfadeDurationSeconds = prefs[PreferencesKeys.CROSSFADE_SECONDS] ?: 0,
             equalizerPreset = prefs[PreferencesKeys.EQUALIZER_PRESET] ?: "Flat",
-            sleepTimerMinutes = prefs[PreferencesKeys.SLEEP_TIMER_MINUTES] ?: 0
+            sleepTimerMinutes = prefs[PreferencesKeys.SLEEP_TIMER_MINUTES] ?: 0,
+            disabledFolders = prefs[PreferencesKeys.DISABLED_FOLDERS] ?: emptySet()
         )
     }
 
@@ -79,6 +83,18 @@ class AuraPreferencesRepository(private val context: Context) {
     suspend fun setSleepTimer(minutes: Int) {
         context.auraDataStore.edit { prefs ->
             prefs[PreferencesKeys.SLEEP_TIMER_MINUTES] = minutes
+        }
+    }
+
+    suspend fun setFolderEnabled(folderName: String, enabled: Boolean) {
+        context.auraDataStore.edit { prefs ->
+            val current = (prefs[PreferencesKeys.DISABLED_FOLDERS] ?: emptySet()).toMutableSet()
+            if (enabled) {
+                current.remove(folderName)
+            } else {
+                current.add(folderName)
+            }
+            prefs[PreferencesKeys.DISABLED_FOLDERS] = current
         }
     }
 }

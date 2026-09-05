@@ -292,6 +292,7 @@ fun AuraApp() {
                                     onCrossfadeChange = { settingsViewModel.setCrossfadeDuration(it) },
                                     onEqualizerPresetChange = { settingsViewModel.setEqualizerPreset(it) },
                                     onSleepTimerChange = { settingsViewModel.setSleepTimer(it) },
+                                    onFolderToggle = { folder, enabled -> settingsViewModel.setFolderEnabled(folder, enabled) },
                                     onRescan = { libraryViewModel.rescan() },
                                     onBack = { activeScreen = ActiveScreen.Main }
                                 )

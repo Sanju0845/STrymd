@@ -1,6 +1,11 @@
 package com.example.ui.nowplaying
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,8 +20,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowDownward
-import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material3.Icon
@@ -24,10 +27,19 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -35,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import com.example.domain.model.Song
 import com.example.ui.components.AlbumArtImage
 import com.example.ui.theme.AuraAccentRed
+import kotlin.math.roundToInt
 
 @Composable
 fun QueueView(
@@ -45,6 +58,11 @@ fun QueueView(
     onReorderQueue: (Int, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var draggedIndex by remember { mutableStateOf<Int?>(null) }
+    var dragOffset by remember { mutableFloatStateOf(0f) }
+    val density = LocalDensity.current
+    val itemHeightPx = with(density) { 64.dp.toPx() }
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -61,14 +79,58 @@ fun QueueView(
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        itemsIndexed(queue) { index, song ->
+        itemsIndexed(queue, key = { _, song -> song.id }) { index, song ->
             val isCurrent = index == currentIndex
+            val isDragging = draggedIndex == index
+
+            val scale by animateFloatAsState(
+                targetValue = if (isDragging) 1.06f else 1f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                label = "queueItemScale"
+            )
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onSongSelected(song) }
-                    .padding(vertical = 8.dp)
+                    .graphicsLayer {
+                        if (isDragging) {
+                            translationY = dragOffset
+                            shadowElevation = 24f
+                        }
+                    }
+                    .scale(scale)
+                    .background(
+                        color = if (isDragging) Color.White.copy(alpha = 0.18f) else Color.Transparent,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    .pointerInput(index) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = {
+                                draggedIndex = index
+                                dragOffset = 0f
+                            },
+                            onDragEnd = {
+                                draggedIndex?.let { from ->
+                                    val targetIndex = (from + (dragOffset / itemHeightPx).roundToInt()).coerceIn(0, queue.size - 1)
+                                    if (from != targetIndex) {
+                                        onReorderQueue(from, targetIndex)
+                                    }
+                                }
+                                draggedIndex = null
+                                dragOffset = 0f
+                            },
+                            onDragCancel = {
+                                draggedIndex = null
+                                dragOffset = 0f
+                            },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                dragOffset += dragAmount.y
+                            }
+                        )
+                    }
+                    .clickable { if (draggedIndex == null) onSongSelected(song) }
+                    .padding(vertical = 8.dp, horizontal = 8.dp)
                     .testTag("queue_item_$index"),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -112,47 +174,17 @@ fun QueueView(
                     )
                 }
 
-                // Reorder up/down buttons
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (index > 0) {
-                        IconButton(
-                            onClick = { onReorderQueue(index, index - 1) },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.ArrowUpward,
-                                contentDescription = "Move Up",
-                                tint = Color.White.copy(alpha = 0.6f),
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
-                    if (index < queue.size - 1) {
-                        IconButton(
-                            onClick = { onReorderQueue(index, index + 1) },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.ArrowDownward,
-                                contentDescription = "Move Down",
-                                tint = Color.White.copy(alpha = 0.6f),
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
-
-                    if (!isCurrent) {
-                        IconButton(
-                            onClick = { onRemoveFromQueue(index) },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Close,
-                                contentDescription = "Remove from Queue",
-                                tint = Color.White.copy(alpha = 0.5f),
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
+                if (!isCurrent) {
+                    IconButton(
+                        onClick = { onRemoveFromQueue(index) },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = "Remove from Queue",
+                            tint = Color.White.copy(alpha = 0.5f),
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 }
             }
@@ -163,4 +195,3 @@ fun QueueView(
         }
     }
 }
-

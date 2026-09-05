@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -76,6 +77,23 @@ fun GlassSlider(
             .height(40.dp)
             .onSizeChanged { trackWidthPx = it.width.toFloat() }
             .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = { offset ->
+                        isDragging = true
+                        if (trackWidthPx > 0f) {
+                            val new = (offset.x / trackWidthPx).coerceIn(0f, 1f)
+                            onValueChange(new)
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        }
+                        try {
+                            awaitRelease()
+                        } finally {
+                            isDragging = false
+                        }
+                    }
+                )
+            }
+            .pointerInput(Unit) {
                 detectHorizontalDragGestures(
                     onDragStart = {
                         isDragging = true
@@ -83,9 +101,9 @@ fun GlassSlider(
                     },
                     onDragEnd   = { isDragging = false },
                     onDragCancel= { isDragging = false },
-                    onHorizontalDrag = { _, delta ->
+                    onHorizontalDrag = { change, _ ->
                         if (trackWidthPx > 0f) {
-                            val new = (value + delta / trackWidthPx).coerceIn(0f, 1f)
+                            val new = (change.position.x / trackWidthPx).coerceIn(0f, 1f)
                             onValueChange(new)
                         }
                     }

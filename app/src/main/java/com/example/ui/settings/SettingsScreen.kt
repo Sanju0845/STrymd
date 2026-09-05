@@ -85,6 +85,7 @@ fun SettingsScreen(
     onCrossfadeChange: (Int) -> Unit,
     onEqualizerPresetChange: (String) -> Unit,
     onSleepTimerChange: (Int) -> Unit,
+    onFolderToggle: (String, Boolean) -> Unit = { _, _ -> },
     onRescan: () -> Unit = {},
     onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -296,6 +297,67 @@ fun SettingsScreen(
                                     text = preset,
                                     style = MaterialTheme.typography.labelSmall,
                                     color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Music Folders / Search Directories Section
+        item {
+            Spacer(modifier = Modifier.height(24.dp))
+            SettingsSectionHeader(title = "Music Folders & Search Directories")
+            Spacer(modifier = Modifier.height(8.dp))
+
+            GlassSurface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                shape = GlassCardShape,
+                elevation = 6.dp
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Choose which folders to search and scan for music",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    val folders = allSongs.map { it.folderName }.distinct().sorted()
+                    if (folders.isEmpty()) {
+                        Text(
+                            text = "No music folders found",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    } else {
+                        folders.forEach { folder ->
+                            val isEnabled = !preferences.disabledFolders.contains(folder)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = folder,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Switch(
+                                    checked = isEnabled,
+                                    onCheckedChange = { checked ->
+                                        onFolderToggle(folder, checked)
+                                    },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = AuraAccentRed
+                                    )
                                 )
                             }
                         }
