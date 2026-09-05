@@ -1,7 +1,3 @@
-<div align="center">
-<img width="1200" height="475" alt="STrymd - Apple Music Experience on Android" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
-
 # 🎵 STrymd — Apple Music for Android
 
 Experience the elegance of Apple Music on your Android phone. STrymd brings the iconic Apple Music interface, smooth animations, and premium listening experience directly to your Android device.
@@ -126,7 +122,7 @@ Love STrymd? Have ideas? Found a bug?
 
 ## 📄 License & Attribution
 
-STrymd is built with modern Android technologies and is generated through AI Studio, bringing professional-grade music playback to everyone.
+STrymd is built with modern Android technologies.
 
 ---
 
