@@ -43,7 +43,8 @@ fun AlbumArtImage(
     artUri: String?,
     modifier: Modifier = Modifier,
     shape: Shape = AlbumArtShape,
-    contentDescription: String? = "Album Artwork"
+    contentDescription: String? = "Album Artwork",
+    contentScale: ContentScale = ContentScale.Crop
 ) {
     Box(
         modifier = modifier
@@ -62,7 +63,7 @@ fun AlbumArtImage(
             AsyncImage(
                 model = artUri,
                 contentDescription = contentDescription,
-                contentScale = ContentScale.Crop,
+                contentScale = contentScale,
                 modifier = Modifier.fillMaxSize()
             )
         } else {

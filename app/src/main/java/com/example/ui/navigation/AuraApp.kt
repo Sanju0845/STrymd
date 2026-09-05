@@ -52,6 +52,14 @@ import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import com.example.data.preferences.ThemeMode
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
+import com.example.ui.home.NewScreen
+import com.example.ui.home.OnlineMusicScreen
 import com.example.ui.glass.GlassMiniPlayer
 import com.example.ui.glass.GlassNavBar
 import com.example.ui.glass.GlassNavItem
@@ -71,6 +79,7 @@ import kotlinx.coroutines.launch
 
 sealed class ActiveScreen {
     object Main : ActiveScreen()
+    object Settings : ActiveScreen()
     data class AlbumDetail(val album: Album) : ActiveScreen()
     data class ArtistDetail(val artist: Artist) : ActiveScreen()
     data class PlaylistDetail(val playlist: Playlist) : ActiveScreen()
@@ -142,19 +151,10 @@ fun AuraApp() {
     }
 
     val coroutineScope = rememberCoroutineScope()
-    val pagerState = rememberPagerState(initialPage = 0, pageCount = { 4 })
+    val pagerState = rememberPagerState(initialPage = 0, pageCount = { 5 })
 
     val hazeState = remember { HazeState() }
     val isDark = preferences.themeMode != ThemeMode.LIGHT
-
-    val navItems = remember {
-        listOf(
-            GlassNavItem(label = "Home", icon = Icons.Rounded.Home),
-            GlassNavItem(label = "Library", icon = Icons.Rounded.LibraryMusic),
-            GlassNavItem(label = "Search", icon = Icons.Rounded.Search),
-            GlassNavItem(label = "Settings", icon = Icons.Rounded.Settings)
-        )
-    }
 
     var activeScreen by remember { mutableStateOf<ActiveScreen>(ActiveScreen.Main) }
     var isNowPlayingExpanded by remember { mutableStateOf(false) }
@@ -214,12 +214,36 @@ fun AuraApp() {
                                             },
                                             onNavigateToLibraryTab = { _ ->
                                                 coroutineScope.launch {
-                                                    pagerState.animateScrollToPage(1)
+                                                    pagerState.animateScrollToPage(3)
+                                                }
+                                            },
+                                            onNavigateToSettings = {
+                                                activeScreen = ActiveScreen.Settings
+                                            }
+                                        )
+
+                                        1 -> NewScreen(
+                                            allSongs = allSongs,
+                                            recentlyAdded = recentlyAdded,
+                                            albums = albums,
+                                            onPlaySong = { song, queue ->
+                                                playbackManager.playSong(song, queue)
+                                            },
+                                            onAlbumSelected = { activeScreen = ActiveScreen.AlbumDetail(it) },
+                                            onNavigateToLibrary = {
+                                                coroutineScope.launch {
+                                                    pagerState.animateScrollToPage(3)
                                                 }
                                             }
                                         )
 
-                                        1 -> LibraryScreen(
+                                        2 -> OnlineMusicScreen(
+                                            onPlaySong = { song, queue ->
+                                                playbackManager.playSong(song, queue)
+                                            }
+                                        )
+
+                                        3 -> LibraryScreen(
                                             songs = allSongs,
                                             albums = albums,
                                             artists = artists,
@@ -234,10 +258,13 @@ fun AuraApp() {
                                             onPlaylistSelected = { activeScreen = ActiveScreen.PlaylistDetail(it) },
                                             onFolderSelected = { activeScreen = ActiveScreen.FolderDetail(it) },
                                             onCreatePlaylist = { libraryViewModel.createPlaylist(it) },
-                                            onRescan = { libraryViewModel.rescan() }
+                                            onRescan = { libraryViewModel.rescan() },
+                                            onNavigateToSettings = {
+                                                activeScreen = ActiveScreen.Settings
+                                            }
                                         )
 
-                                        2 -> SearchScreen(
+                                        4 -> SearchScreen(
                                             query = searchQuery,
                                             searchResults = searchResults,
                                             recentSearches = recentSearches,
@@ -249,22 +276,25 @@ fun AuraApp() {
                                             onAlbumSelected = { activeScreen = ActiveScreen.AlbumDetail(it) },
                                             onArtistSelected = { activeScreen = ActiveScreen.ArtistDetail(it) }
                                         )
-
-                                        3 -> SettingsScreen(
-                                            preferences = preferences,
-                                            totalSongs = allSongs.size,
-                                            totalAlbums = albums.size,
-                                            totalArtists = artists.size,
-                                            allSongs = allSongs,
-                                            onThemeChange = { settingsViewModel.setThemeMode(it) },
-                                            onGaplessChange = { settingsViewModel.setGaplessPlayback(it) },
-                                            onCrossfadeChange = { settingsViewModel.setCrossfadeDuration(it) },
-                                            onEqualizerPresetChange = { settingsViewModel.setEqualizerPreset(it) },
-                                            onSleepTimerChange = { settingsViewModel.setSleepTimer(it) },
-                                            onRescan = { libraryViewModel.rescan() }
-                                        )
                                     }
                                 }
+                            }
+
+                            is ActiveScreen.Settings -> {
+                                SettingsScreen(
+                                    preferences = preferences,
+                                    totalSongs = allSongs.size,
+                                    totalAlbums = albums.size,
+                                    totalArtists = artists.size,
+                                    allSongs = allSongs,
+                                    onThemeChange = { settingsViewModel.setThemeMode(it) },
+                                    onGaplessChange = { settingsViewModel.setGaplessPlayback(it) },
+                                    onCrossfadeChange = { settingsViewModel.setCrossfadeDuration(it) },
+                                    onEqualizerPresetChange = { settingsViewModel.setEqualizerPreset(it) },
+                                    onSleepTimerChange = { settingsViewModel.setSleepTimer(it) },
+                                    onRescan = { libraryViewModel.rescan() },
+                                    onBack = { activeScreen = ActiveScreen.Main }
+                                )
                             }
 
                             is ActiveScreen.AlbumDetail -> {
@@ -274,6 +304,7 @@ fun AuraApp() {
                                     subtitle = screen.album.artist,
                                     artUri = screen.album.artUri,
                                     songs = albumSongs,
+                                    playlists = playlists,
                                     onBack = { activeScreen = ActiveScreen.Main },
                                     onPlaySong = { song, queue -> playbackManager.playSong(song, queue) },
                                     onShuffleAll = {
@@ -284,7 +315,9 @@ fun AuraApp() {
                                     },
                                     onToggleFavorite = { libraryViewModel.toggleFavorite(it) },
                                     onPlayNext = { playbackManager.playNext(it) },
-                                    onAddToQueue = { playbackManager.addToQueue(it) }
+                                    onAddToQueue = { playbackManager.addToQueue(it) },
+                                    onCreatePlaylist = { libraryViewModel.createPlaylist(it) },
+                                    onAddSongToPlaylist = { pid, sid -> libraryViewModel.addSongToPlaylist(pid, sid) }
                                 )
                             }
 
@@ -295,6 +328,7 @@ fun AuraApp() {
                                     subtitle = "${screen.artist.songCount} Songs • ${screen.artist.albumCount} Albums",
                                     artUri = artistSongs.firstOrNull()?.albumArtUri,
                                     songs = artistSongs,
+                                    playlists = playlists,
                                     onBack = { activeScreen = ActiveScreen.Main },
                                     onPlaySong = { song, queue -> playbackManager.playSong(song, queue) },
                                     onShuffleAll = {
@@ -305,7 +339,9 @@ fun AuraApp() {
                                     },
                                     onToggleFavorite = { libraryViewModel.toggleFavorite(it) },
                                     onPlayNext = { playbackManager.playNext(it) },
-                                    onAddToQueue = { playbackManager.addToQueue(it) }
+                                    onAddToQueue = { playbackManager.addToQueue(it) },
+                                    onCreatePlaylist = { libraryViewModel.createPlaylist(it) },
+                                    onAddSongToPlaylist = { pid, sid -> libraryViewModel.addSongToPlaylist(pid, sid) }
                                 )
                             }
 
@@ -316,6 +352,7 @@ fun AuraApp() {
                                     subtitle = "${playlistSongs.size} Songs",
                                     artUri = playlistSongs.firstOrNull()?.albumArtUri,
                                     songs = playlistSongs,
+                                    playlists = playlists,
                                     onBack = { activeScreen = ActiveScreen.Main },
                                     onPlaySong = { song, queue -> playbackManager.playSong(song, queue) },
                                     onShuffleAll = {
@@ -326,7 +363,9 @@ fun AuraApp() {
                                     },
                                     onToggleFavorite = { libraryViewModel.toggleFavorite(it) },
                                     onPlayNext = { playbackManager.playNext(it) },
-                                    onAddToQueue = { playbackManager.addToQueue(it) }
+                                    onAddToQueue = { playbackManager.addToQueue(it) },
+                                    onCreatePlaylist = { libraryViewModel.createPlaylist(it) },
+                                    onAddSongToPlaylist = { pid, sid -> libraryViewModel.addSongToPlaylist(pid, sid) }
                                 )
                             }
 
@@ -337,6 +376,7 @@ fun AuraApp() {
                                     subtitle = "${folderSongs.size} Songs in folder",
                                     artUri = folderSongs.firstOrNull()?.albumArtUri,
                                     songs = folderSongs,
+                                    playlists = playlists,
                                     onBack = { activeScreen = ActiveScreen.Main },
                                     onPlaySong = { song, queue -> playbackManager.playSong(song, queue) },
                                     onShuffleAll = {
@@ -347,60 +387,96 @@ fun AuraApp() {
                                     },
                                     onToggleFavorite = { libraryViewModel.toggleFavorite(it) },
                                     onPlayNext = { playbackManager.playNext(it) },
-                                    onAddToQueue = { playbackManager.addToQueue(it) }
+                                    onAddToQueue = { playbackManager.addToQueue(it) },
+                                    onCreatePlaylist = { libraryViewModel.createPlaylist(it) },
+                                    onAddSongToPlaylist = { pid, sid -> libraryViewModel.addSongToPlaylist(pid, sid) }
                                 )
                             }
                         }
                     }
 
-                    // Floating Bottom Controls: Glass Mini Player + Glass Nav Bar
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                    // Floating Bottom Controls: Ambient Glass Blur Scrim + Glass Mini Player + Glass Nav Bar
+                    if (!isNowPlayingExpanded) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth()
                         ) {
-                            // Glass Mini Player if a song is loaded
-                            AnimatedVisibility(
-                                visible = playbackState.currentSong != null,
-                                enter = slideInVertically { it } + fadeIn(),
-                                exit = slideOutVertically { it } + fadeOut()
-                            ) {
-                                val song = playbackState.currentSong
-                                if (song != null) {
-                                    val progress = if (playbackState.durationMs > 0) {
-                                        (playbackState.currentPositionMs.toFloat() / playbackState.durationMs).coerceIn(0f, 1f)
-                                    } else 0f
-                                    GlassMiniPlayer(
-                                        title = song.title,
-                                        artist = song.artist,
-                                        isPlaying = playbackState.isPlaying,
-                                        progress = progress,
-                                        artUri = song.albumArtUri,
-                                        hazeState = hazeState,
-                                        isDarkTheme = isDark,
-                                        onPlayPause = { playbackManager.togglePlayPause() },
-                                        onNext = { playbackManager.next() },
-                                        onTap = { isNowPlayingExpanded = true }
+                            // Ambient backdrop blur scrim behind the entire bottom dock area
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            0f to Color.Transparent,
+                                            0.25f to (if (isDark) Color(0xFF030712).copy(alpha = 0.4f) else Color.White.copy(alpha = 0.4f)),
+                                            1f to (if (isDark) Color(0xFF030712).copy(alpha = 0.85f) else Color.White.copy(alpha = 0.85f))
+                                        )
                                     )
-                                }
-                            }
+                                    .hazeEffect(
+                                        state = hazeState,
+                                        style = HazeStyle(
+                                            blurRadius = 26.dp,
+                                            tint = if (isDark) HazeTint(Color(0xFF030712).copy(alpha = 0.2f))
+                                            else HazeTint(Color.White.copy(alpha = 0.3f))
+                                        )
+                                    )
+                            )
 
-                            // Floating Glass Nav Bar
-                            GlassNavBar(
-                                items = navItems,
-                                selectedIndex = pagerState.currentPage,
-                                hazeState = hazeState,
-                                isDarkTheme = isDark,
-                                onItemSelected = { index ->
-                                    activeScreen = ActiveScreen.Main
-                                    coroutineScope.launch {
-                                        pagerState.animateScrollToPage(index)
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .navigationBarsPadding()
+                                    .padding(bottom = 6.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                // Glass Mini Player if a song is loaded
+                                AnimatedVisibility(
+                                    visible = playbackState.currentSong != null,
+                                    enter = slideInVertically { it } + fadeIn(),
+                                    exit = slideOutVertically { it } + fadeOut()
+                                ) {
+                                    val song = playbackState.currentSong
+                                    if (song != null) {
+                                        val progress = if (playbackState.durationMs > 0) {
+                                            (playbackState.currentPositionMs.toFloat() / playbackState.durationMs).coerceIn(0f, 1f)
+                                        } else 0f
+                                        GlassMiniPlayer(
+                                            title = song.title,
+                                            artist = song.artist,
+                                            isPlaying = playbackState.isPlaying,
+                                            progress = progress,
+                                            artUri = song.albumArtUri,
+                                            hazeState = hazeState,
+                                            isDarkTheme = isDark,
+                                            onPlayPause = { playbackManager.togglePlayPause() },
+                                            onNext = { playbackManager.next() },
+                                            onTap = { isNowPlayingExpanded = true }
+                                        )
                                     }
                                 }
-                            )
+
+                                // Apple Music Floating Glass Nav Bar: Left capsule (Home, New, Radio, Library) + Right circle (Search)
+                                val isSearchSelected = (pagerState.currentPage == 4 && activeScreen is ActiveScreen.Main)
+                                GlassNavBar(
+                                    selectedIndex = pagerState.currentPage,
+                                    isSearchSelected = isSearchSelected,
+                                    hazeState = hazeState,
+                                    isDarkTheme = isDark,
+                                    onItemSelected = { index ->
+                                        activeScreen = ActiveScreen.Main
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(index)
+                                        }
+                                    },
+                                    onSearchClick = {
+                                        activeScreen = ActiveScreen.Main
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(4)
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
                 }

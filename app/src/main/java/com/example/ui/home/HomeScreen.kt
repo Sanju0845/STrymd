@@ -1,5 +1,6 @@
 package com.example.ui.home
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -39,11 +40,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.domain.model.Album
 import com.example.domain.model.Song
 import com.example.ui.components.AlbumArtImage
@@ -70,6 +75,7 @@ fun HomeScreen(
     albums: List<Album>,
     onPlaySong: (Song, List<Song>) -> Unit,
     onNavigateToLibraryTab: (String) -> Unit,
+    onNavigateToSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val greeting = remember {
@@ -97,25 +103,46 @@ fun HomeScreen(
     ) {
         // Date and Greeting Header
         item {
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 4.dp)
+                    .padding(horizontal = 20.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = dateFormatted.uppercase(),
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = greeting,
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                Column {
+                    Text(
+                        text = dateFormatted.uppercase(),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = greeting,
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+                GlassSurface(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clickable(onClick = onNavigateToSettings),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = 2.dp
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.strymd_logo),
+                        contentDescription = stringResource(id = R.string.app_name),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(6.dp)
+                            .align(Alignment.Center),
+                        contentScale = ContentScale.Fit
+                    )
+                }
             }
         }
 

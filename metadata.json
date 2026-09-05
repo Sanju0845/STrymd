@@ -1,7 +1,8 @@
 {
-  "name": "STrymd",
+  "name": "Remix STrymd",
   "description": "Apple Music-inspired local music player with liquid glass design, Media3 engine, and dynamic color extraction.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
-

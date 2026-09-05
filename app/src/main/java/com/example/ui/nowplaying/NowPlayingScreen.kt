@@ -478,57 +478,56 @@ fun NowPlayingScreen(
                             queue = playbackState.queue,
                             currentIndex = playbackState.queueIndex,
                             onSongSelected = { targetSong -> playbackManager.playSong(targetSong, playbackState.queue) },
-                            onRemoveFromQueue = { index -> playbackManager.removeFromQueue(index) }
+                            onRemoveFromQueue = { index -> playbackManager.removeFromQueue(index) },
+                            onReorderQueue = { from, to -> playbackManager.reorderQueue(from, to) }
                         )
                     }
                 }
             }
 
-            // Bottom Switcher Bar: Player / Lyrics / Queue / Equalizer
-            GlassSurface(
+            // Bottom Bar (Apple Music style: Lyrics, Cast, Queue)
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
-                    .padding(bottom = 6.dp),
-                shape = PillShape,
-                elevation = 8.dp
+                    .padding(vertical = 12.dp, horizontal = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
+                IconButton(
+                    onClick = {
+                        currentTab = if (currentTab == NowPlayingTab.LYRICS) NowPlayingTab.PLAYER else NowPlayingTab.LYRICS
+                    }
                 ) {
-                    IconButton(onClick = { currentTab = NowPlayingTab.PLAYER }) {
-                        Icon(
-                            imageVector = Icons.Rounded.MusicNote,
-                            contentDescription = "Player View",
-                            tint = if (currentTab == NowPlayingTab.PLAYER) AuraAccentRed else Color.White.copy(alpha = 0.6f)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Rounded.Lyrics,
+                        contentDescription = "Lyrics",
+                        tint = if (currentTab == NowPlayingTab.LYRICS) Color.White else Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
 
-                    IconButton(onClick = { currentTab = NowPlayingTab.LYRICS }) {
-                        Icon(
-                            imageVector = Icons.Rounded.Lyrics,
-                            contentDescription = "Lyrics View",
-                            tint = if (currentTab == NowPlayingTab.LYRICS) AuraAccentRed else Color.White.copy(alpha = 0.6f)
-                        )
-                    }
+                IconButton(
+                    onClick = { showEqualizerDialog = true }
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Equalizer,
+                        contentDescription = "Audio Route / Equalizer",
+                        tint = Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
 
-                    IconButton(onClick = { currentTab = NowPlayingTab.QUEUE }) {
-                        Icon(
-                            imageVector = Icons.Rounded.QueueMusic,
-                            contentDescription = "Up Next Queue",
-                            tint = if (currentTab == NowPlayingTab.QUEUE) AuraAccentRed else Color.White.copy(alpha = 0.6f)
-                        )
+                IconButton(
+                    onClick = {
+                        currentTab = if (currentTab == NowPlayingTab.QUEUE) NowPlayingTab.PLAYER else NowPlayingTab.QUEUE
                     }
-
-                    IconButton(onClick = { showEqualizerDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Rounded.Equalizer,
-                            contentDescription = "Equalizer",
-                            tint = Color.White.copy(alpha = 0.6f)
-                        )
-                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.QueueMusic,
+                        contentDescription = "Queue",
+                        tint = if (currentTab == NowPlayingTab.QUEUE) Color.White else Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
         }

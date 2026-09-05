@@ -7,6 +7,7 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.FolderSpecial
 import androidx.compose.material.icons.rounded.GraphicEq
@@ -42,12 +44,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.ui.components.GlassSurface
 import com.example.ui.theme.AuraAccentPink
 import com.example.ui.theme.AuraAccentRed
@@ -105,16 +111,17 @@ fun PermissionScreen(
             // App branding badge
             GlassSurface(
                 modifier = Modifier.size(96.dp),
-                shape = PillShape,
+                shape = RoundedCornerShape(24.dp),
                 elevation = 16.dp
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.GraphicEq,
-                    contentDescription = null,
-                    tint = AuraAccentRed,
+                Image(
+                    painter = painterResource(id = R.drawable.strymd_logo),
+                    contentDescription = stringResource(id = R.string.app_name),
                     modifier = Modifier
-                        .size(48.dp)
-                        .align(Alignment.Center)
+                        .fillMaxSize()
+                        .padding(14.dp)
+                        .align(Alignment.Center),
+                    contentScale = ContentScale.Fit
                 )
             }
 

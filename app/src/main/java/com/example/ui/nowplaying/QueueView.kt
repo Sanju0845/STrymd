@@ -15,8 +15,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowDownward
+import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,6 +42,7 @@ fun QueueView(
     currentIndex: Int,
     onSongSelected: (Song) -> Unit,
     onRemoveFromQueue: (Int) -> Unit,
+    onReorderQueue: (Int, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -110,17 +112,47 @@ fun QueueView(
                     )
                 }
 
-                if (!isCurrent) {
-                    IconButton(
-                        onClick = { onRemoveFromQueue(index) },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Close,
-                            contentDescription = "Remove from Queue",
-                            tint = Color.White.copy(alpha = 0.5f),
-                            modifier = Modifier.size(18.dp)
-                        )
+                // Reorder up/down buttons
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (index > 0) {
+                        IconButton(
+                            onClick = { onReorderQueue(index, index - 1) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.ArrowUpward,
+                                contentDescription = "Move Up",
+                                tint = Color.White.copy(alpha = 0.6f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                    if (index < queue.size - 1) {
+                        IconButton(
+                            onClick = { onReorderQueue(index, index + 1) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.ArrowDownward,
+                                contentDescription = "Move Down",
+                                tint = Color.White.copy(alpha = 0.6f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+
+                    if (!isCurrent) {
+                        IconButton(
+                            onClick = { onRemoveFromQueue(index) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Close,
+                                contentDescription = "Remove from Queue",
+                                tint = Color.White.copy(alpha = 0.5f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -131,3 +163,4 @@ fun QueueView(
         }
     }
 }
+

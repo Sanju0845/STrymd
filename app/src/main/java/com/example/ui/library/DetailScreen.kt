@@ -1,44 +1,18 @@
 package com.example.ui.library
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.FavoriteBorder
-import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Shuffle
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -53,38 +27,46 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.domain.model.Playlist
 import com.example.domain.model.Song
 import com.example.ui.components.AlbumArtImage
 import com.example.ui.components.formatDuration
 import com.example.ui.components.rememberDynamicPalette
-import com.example.ui.theme.AuraAccentPink
 import com.example.ui.theme.AuraAccentRed
-import com.example.ui.theme.AuraAccentViolet
 import com.example.ui.theme.AuraDarkBackground
 import com.example.ui.theme.PillShape
 
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun DetailScreen(
     title: String,
     subtitle: String,
     artUri: String?,
     songs: List<Song>,
+    playlists: List<Playlist> = emptyList(),
     onBack: () -> Unit,
     onPlaySong: (Song, List<Song>) -> Unit,
     onShuffleAll: () -> Unit,
     onToggleFavorite: (Song) -> Unit,
     onPlayNext: (Song) -> Unit,
     onAddToQueue: (Song) -> Unit,
+    onCreatePlaylist: (String) -> Unit = {},
+    onAddSongToPlaylist: (Long, Long) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val (dominant, vibrant) = rememberDynamicPalette(artUri)
+    var selectedSongForMenu by remember { mutableStateOf<Song?>(null) }
+    var showAddToPlaylistDialog by remember { mutableStateOf(false) }
+    var showCreatePlaylistDialog by remember { mutableStateOf(false) }
+    var newPlaylistName by remember { mutableStateOf("") }
+    var songPendingPlaylist by remember { mutableStateOf<Song?>(null) }
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(AuraDarkBackground)
     ) {
-        // Blurred Art backdrop behind detail screen
+        // Blurred Art backdrop
         if (!artUri.isNullOrEmpty()) {
             Box(
                 modifier = Modifier
@@ -187,7 +169,7 @@ fun DetailScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Play All & Shuffle Buttons
+                    // Play & Shuffle Buttons
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -247,14 +229,15 @@ fun DetailScreen(
                 }
             }
 
-            // Song list items
+            // Song list items with combinedClickable for long press
             itemsIndexed(songs) { index, song ->
-                var menuExpanded by remember { mutableStateOf(false) }
-
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onPlaySong(song, songs) }
+                        .combinedClickable(
+                            onClick = { onPlaySong(song, songs) },
+                            onLongClick = { selectedSongForMenu = song }
+                        )
                         .padding(horizontal = 20.dp, vertical = 10.dp)
                         .testTag("detail_song_$index"),
                     verticalAlignment = Alignment.CenterVertically
@@ -290,48 +273,217 @@ fun DetailScreen(
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
 
-                    Box {
-                        IconButton(
-                            onClick = { menuExpanded = true },
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.MoreVert,
-                                contentDescription = "More Options",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        DropdownMenu(
-                            expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(if (song.isFavorite) "Remove from Favorites" else "Add to Favorites") },
-                                onClick = {
-                                    onToggleFavorite(song)
-                                    menuExpanded = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Play Next") },
-                                onClick = {
-                                    onPlayNext(song)
-                                    menuExpanded = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Add to Queue") },
-                                onClick = {
-                                    onAddToQueue(song)
-                                    menuExpanded = false
-                                }
-                            )
-                        }
+                    IconButton(
+                        onClick = { selectedSongForMenu = song },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.MoreVert,
+                            contentDescription = "More Options",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
             }
+        }
+
+        // Song Action Bottom Sheet / Menu
+        selectedSongForMenu?.let { song ->
+            ModalBottomSheet(
+                onDismissRequest = { selectedSongForMenu = null },
+                containerColor = Color(0xFF18181B)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp)
+                ) {
+                    Text(
+                        text = song.title,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = song.artist,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.6f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Play Next
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onPlayNext(song)
+                                selectedSongForMenu = null
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(imageVector = Icons.Rounded.PlaylistPlay, contentDescription = null, tint = AuraAccentRed)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(text = "Play Next", style = MaterialTheme.typography.bodyLarge, color = Color.White)
+                    }
+
+                    // Add to Queue
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onAddToQueue(song)
+                                selectedSongForMenu = null
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(imageVector = Icons.Rounded.QueueMusic, contentDescription = null, tint = Color.White)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(text = "Add to Queue", style = MaterialTheme.typography.bodyLarge, color = Color.White)
+                    }
+
+                    // Add to Playlist
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                songPendingPlaylist = song
+                                selectedSongForMenu = null
+                                showAddToPlaylistDialog = true
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(imageVector = Icons.Rounded.PlaylistAdd, contentDescription = null, tint = Color.White)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(text = "Add to Playlist...", style = MaterialTheme.typography.bodyLarge, color = Color.White)
+                    }
+
+                    // Make New Playlist
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                songPendingPlaylist = song
+                                selectedSongForMenu = null
+                                showCreatePlaylistDialog = true
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(imageVector = Icons.Rounded.CreateNewFolder, contentDescription = null, tint = Color.White)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(text = "Make New Playlist...", style = MaterialTheme.typography.bodyLarge, color = Color.White)
+                    }
+
+                    // Toggle Favorite
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onToggleFavorite(song)
+                                selectedSongForMenu = null
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (song.isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                            contentDescription = null,
+                            tint = if (song.isFavorite) AuraAccentRed else Color.White
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = if (song.isFavorite) "Remove from Favorites" else "Add to Favorites",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.White
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+            }
+        }
+
+        // Add to Playlist Selection Dialog
+        if (showAddToPlaylistDialog) {
+            AlertDialog(
+                onDismissRequest = { showAddToPlaylistDialog = false },
+                title = { Text("Add to Playlist") },
+                text = {
+                    Column {
+                        if (playlists.isEmpty()) {
+                            Text("No playlists found. Create one first!")
+                        } else {
+                            LazyColumn(modifier = Modifier.height(200.dp)) {
+                                items(playlists.size) { idx ->
+                                    val playlist = playlists[idx]
+                                    TextButton(
+                                        onClick = {
+                                            songPendingPlaylist?.let { s ->
+                                                onAddSongToPlaylist(playlist.id, s.id)
+                                            }
+                                            showAddToPlaylistDialog = false
+                                            songPendingPlaylist = null
+                                        },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(playlist.name, color = MaterialTheme.colorScheme.onSurface)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showAddToPlaylistDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+
+        // Make New Playlist Dialog
+        if (showCreatePlaylistDialog) {
+            AlertDialog(
+                onDismissRequest = { showCreatePlaylistDialog = false },
+                title = { Text("Make New Playlist") },
+                text = {
+                    OutlinedTextField(
+                        value = newPlaylistName,
+                        onValueChange = { newPlaylistName = it },
+                        label = { Text("Playlist Name") },
+                        singleLine = true
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            if (newPlaylistName.isNotBlank()) {
+                                onCreatePlaylist(newPlaylistName.trim())
+                                newPlaylistName = ""
+                            }
+                            showCreatePlaylistDialog = false
+                            songPendingPlaylist = null
+                        }
+                    ) {
+                        Text("Create")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showCreatePlaylistDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }
